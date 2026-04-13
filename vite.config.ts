@@ -16,9 +16,7 @@ import markdown from 'vite-plugin-vue-markdown';
 import svgLoader from 'vite-svg-loader';
 import { configDefaults } from 'vitest/config';
 
-
 import ViteCompression from 'vite-plugin-compression';
-import { visualizer } from 'rollup-plugin-visualizer';
 
 const baseUrl = process.env.BASE_URL ?? '/';
 
@@ -111,12 +109,6 @@ export default defineConfig({
     ViteCompression({
       algorithm: 'brotliCompress',
       threshold: 8192,
-    }),
-    // 优化 6: Bundle Analyzer 可视化报告
-    visualizer({
-      filename: 'dist/stats.html',
-      open: false,
-      gzipSize: true,
     }),
   ],
   base: baseUrl,
