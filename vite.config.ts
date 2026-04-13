@@ -16,6 +16,10 @@ import markdown from 'vite-plugin-vue-markdown';
 import svgLoader from 'vite-svg-loader';
 import { configDefaults } from 'vitest/config';
 
+
+import ViteCompression from 'vite-plugin-compression';
+import { visualizer } from 'rollup-plugin-visualizer';
+
 const baseUrl = process.env.BASE_URL ?? '/';
 
 // https://vitejs.dev/config/
@@ -55,6 +59,8 @@ export default defineConfig({
     svgLoader(),
     VitePWA({
       registerType: 'autoUpdate',
+      skipWaiting: true,
+      clientsClaim: true,
       strategies: 'generateSW',
       manifest: {
         name: 'IT Tools',
@@ -97,6 +103,21 @@ export default defineConfig({
       resolvers: [NaiveUiResolver(), IconsResolver({ prefix: 'icon' })],
     }),
     Unocss(),
+    // 优化 2: Gzip / Brotli 压缩
+    ViteCompression({
+      algorithm: 'gzip',
+      threshold: 8192,
+    }),
+    ViteCompression({
+      algorithm: 'brotliCompress',
+      threshold: 8192,
+    }),
+    // 优化 6: Bundle Analyzer 可视化报告
+    visualizer({
+      filename: 'dist/stats.html',
+      open: false,
+      gzipSize: true,
+    }),
   ],
   base: baseUrl,
   resolve: {
@@ -112,5 +133,27 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
+    // 优化 3: 移除生产构建 SourceMap，提升加载速度 & 安全性
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // 按功能模块拆包，减少首屏体积
+          'vendor-vue': ['vue', 'vue-router', 'pinia'],
+          'vendor-ui': ['naive-ui'],
+          'vendor-utils': ['@vueuse/core'],
+        },
+      },
+    },
+  },
+  // 优化 4: Dev Server 安全响应头
+  server: {
+    headers: {
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'X-XSS-Protection': '1; mode=block',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    },
   },
 });
